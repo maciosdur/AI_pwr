@@ -1,10 +1,11 @@
 import math
 
 class MinimaxAgent:
-    def __init__(self, color, max_depth, heuristic_func):
+    def __init__(self, color, max_depth, heuristic_func, **heuristic_kwargs):
         self.color = color
         self.max_depth = max_depth
         self.heuristic_func = heuristic_func
+        self.heuristic_kwargs = heuristic_kwargs
         self.visited_nodes = 0
 
     def get_best_move(self, state):
@@ -17,7 +18,8 @@ class MinimaxAgent:
         self.visited_nodes += 1
 
         if depth == 0 or state.is_terminal():
-            score = self.heuristic_func(state, player_color)
+            # Przekazujemy dodatkowe wagi do funkcji heurystycznej
+            score = self.heuristic_func(state, player_color, **self.heuristic_kwargs)
             # Premia za szybką wygraną: im wyższe `depth` (zostało więcej kroków do limitu), tym szybciej
             if score > 50000:
                 score += depth * 1000

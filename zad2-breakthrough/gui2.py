@@ -4,17 +4,16 @@ import time
 
 from state import BreakthroughState
 from agents import MinimaxAgent
-from heuristics import eval_hybrid, eval_race, eval_pressure, eval_material
+from heuristics import eval_hybrid, eval_race, eval_pressure, eval_material, eval_threat
 
 class BreakthroughGUI:
-    def __init__(self, master, history, stats, agents):
+    def __init__(self, master, history, stats):
         self.master = master
         self.master.title("Breakthrough AI - Minimax Visualization")
         
         # --- Parametry gry ---
         self.history = history
         self.stats = stats
-        self.agents = agents
         self.current_step = 0
         
         # Inicjalizacja na pierwszym stanie (początkowym)
@@ -58,57 +57,9 @@ class BreakthroughGUI:
         self.lbl_status = tk.Label(self.main_frame, text="", font=font_normal, fg="red")
         self.lbl_status.grid(row=5, column=0, columnspan=2, pady=10)
 
-        # --- Panel Ustawień (Heurystyki i Wagi) ---
-        self.settings_frame = tk.Frame(self.main_frame)
-        self.settings_frame.grid(row=0, column=2, rowspan=6, padx=20, sticky="n")
-
-        self.heuristics_dict = {
-            "eval_hybrid": eval_hybrid,
-            "eval_race": eval_race,
-            "eval_material": eval_material,
-            "eval_pressure": eval_pressure
-        }
-
-        self.create_agent_settings('B', 0)
-        self.create_agent_settings('W', 1)
-
-        self.btn_recalc = tk.Button(self.settings_frame, text="Przelicz od nowa", command=self.recalculate, font=("Helvetica", 10, "bold"), bg="#f44336", fg="white")
-        self.btn_recalc.grid(row=1, column=0, columnspan=2, pady=20)
-
-    def create_agent_settings(self, player, col):
-        frame = tk.LabelFrame(self.settings_frame, text=f"Agent {player}")
-        frame.grid(row=0, column=col, padx=10, sticky="n")
-
-        agent = self.agents[player]
-        
-        var_heur = tk.StringVar(value=agent.heuristic_func.__name__)
-        tk.Label(frame, text="Strategia:").pack()
-        tk.OptionMenu(frame, var_heur, *self.heuristics_dict.keys()).pack(pady=(0,10))
-
-        var_alpha = tk.DoubleVar(value=agent.heuristic_kwargs.get('alpha', 1.0))
-        tk.Label(frame, text="Alpha:").pack()
-        tk.Entry(frame, textvariable=var_alpha, width=8).pack(pady=(0,5))
-
-        var_beta = tk.DoubleVar(value=agent.heuristic_kwargs.get('beta', 10.0))
-        tk.Label(frame, text="Beta:").pack()
-        tk.Entry(frame, textvariable=var_beta, width=8).pack(pady=(0,5))
-
-        var_gamma = tk.DoubleVar(value=agent.heuristic_kwargs.get('gamma', 2.0))
-        tk.Label(frame, text="Gamma:").pack()
-        tk.Entry(frame, textvariable=var_gamma, width=8).pack(pady=(0,5))
-
-        if not hasattr(self, 'vars'):
-            self.vars = {}
-        self.vars[player] = {
-            'heur': var_heur,
-            'alpha': var_alpha,
-            'beta': var_beta,
-            'gamma': var_gamma
-        }
-
     def draw_board(self):
         self.canvas.delete("all")
-        colors = ["#f0d9b5", "#b58863"] # Kolory jasny i ciemny szachownicy
+        colors = ["#f0d9b5", "#b58863"] # Kolory szachownicy
         
         for r in range(self.state.rows):
             for c in range(self.state.cols):
@@ -160,59 +111,11 @@ class BreakthroughGUI:
                 self.lbl_status.config(text="Gra gotowa do odtworzenia.", fg="blue")
 
         # 3. Oblicz i wyświetl aktualną ocenę heurystyczną z perspektywy każdego gracza
-        agent_b = self.agents['B']
-        agent_w = self.agents['W']
-        eval_b = agent_b.heuristic_func(self.state, 'B', **agent_b.heuristic_kwargs)
-        eval_w = agent_w.heuristic_func(self.state, 'W', **agent_w.heuristic_kwargs)
+        eval_b = eval_hybrid(self.state, 'B')
+        eval_w = eval_hybrid(self.state, 'W')
         
         self.lbl_eval_b.config(text=f"Ocena pozycji (B): {eval_b}")
         self.lbl_eval_w.config(text=f"Ocena pozycji (W): {eval_w}")
-
-    def recalculate(self):
-        # Aktualizacja konfiguracji agentów na podstawie wartości z GUI
-        for p in ['B', 'W']:
-            v = self.vars[p]
-            h_func = self.heuristics_dict[v['heur'].get()]
-            if h_func.__name__ == 'eval_hybrid':
-                kwargs = {'alpha': v['alpha'].get(), 'beta': v['beta'].get(), 'gamma': v['gamma'].get()}
-            else:
-                kwargs = {}
-            self.agents[p].heuristic_func = h_func
-            self.agents[p].heuristic_kwargs = kwargs
-
-        # Blokada przycisków na czas obliczeń
-        self.lbl_status.config(text="Przeliczanie... Proszę czekać.", fg="orange")
-        self.btn_recalc.config(state="disabled")
-        self.btn_next.config(state="disabled")
-        self.master.update()
-
-        # Odcinamy dotychczasową przyszłość (historia odcięta od obecnego momentu)
-        self.history = self.history[:self.current_step + 1]
-        self.stats = self.stats[:self.current_step]
-        
-        state = self.state
-        current_player = 'B' if self.current_step % 2 == 0 else 'W'
-        
-        # Główna pętla przeliczania gry do samego końca
-        while not state.is_terminal():
-            agent = self.agents[current_player]
-            start_time = time.time()
-            best_next_state, nodes = agent.get_best_move(state)
-            elapsed = time.time() - start_time
-            
-            if best_next_state is None:
-                break
-                
-            self.stats.append((current_player, elapsed, nodes))
-            state = best_next_state
-            self.history.append(state)
-            current_player = 'W' if current_player == 'B' else 'B'
-
-        # Odblokowanie przycisków
-        self.btn_recalc.config(state="normal")
-        self.btn_next.config(state="normal")
-        self.update_ui()
-        self.lbl_status.config(text="Przeliczono! Gra gotowa do odtworzenia.", fg="blue")
 
     def play_turn(self):
         if self.current_step < len(self.history) - 1:
@@ -235,8 +138,8 @@ if __name__ == "__main__":
 
     print("Prekalkulacja całej gry. Proszę czekać...")
     state = BreakthroughState(initial_board)
-    agent_b = MinimaxAgent('B', max_depth=4, heuristic_func=eval_hybrid, alpha=1.0, beta=0, gamma=0)
-    agent_w = MinimaxAgent('W', max_depth=4, heuristic_func=eval_hybrid, alpha=2.0, beta=50.0, gamma=1.5)
+    agent_b = MinimaxAgent('B', max_depth=3, heuristic_func=eval_hybrid)
+    agent_w = MinimaxAgent('W', max_depth=4, heuristic_func=eval_hybrid)
     
     history = [state]
     stats = []
@@ -262,5 +165,5 @@ if __name__ == "__main__":
 
     root = tk.Tk()
     root.resizable(False, False)
-    app = BreakthroughGUI(root, history, stats, agents)
+    app = BreakthroughGUI(root, history, stats)
     root.mainloop()

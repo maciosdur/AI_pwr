@@ -2,10 +2,9 @@ import time
 import sys
 import inspect
 
-# Zakładamy, że masz już utworzone poniższe pliki (zgodnie ze swoim planem)
 from state import BreakthroughState
 from agents import MinimaxAgent
-from heuristics import eval_material, eval_hybrid, eval_race, eval_pressure
+from heuristics import eval_adaptive, eval_material, eval_hybrid, eval_race, eval_pressure
 
 class GameRunner:
     def __init__(self, initial_board, agent_b, agent_w):
@@ -35,13 +34,13 @@ class GameRunner:
             self.state = best_next_state
             current_player = 'W' if current_player == 'B' else 'B'
 
-        # Zgodnie z listą 2: Standardowe wyjście (STDOUT)
+        #STDOUT
         self.state.print_board()
         winner = 'B' if self.state.is_winner('B') else 'W'
         print(f"Liczba rund: {self.rounds}")
         print(f"Zwyciezca: {winner}")
         
-        # Zgodnie z listą 2: Standardowe wyjście błędów (STDERR)
+        #STDERR
         sys.stderr.write(f"Odwiedzone wezly: {total_nodes}\n")
         sys.stderr.write(f"Czas dzialania: {total_time:.4f}s\n")
 
@@ -52,7 +51,8 @@ class GameRunner:
             sys.stderr.write(f"Agent {p} - Glebokosc: {agent.max_depth}, Strategia: {h_name}\n")
             if h_name == 'eval_hybrid':
                 sig = inspect.signature(agent.heuristic_func)
-                weights = [f"{k}={v.default}" for k, v in sig.parameters.items() if k in ['alpha', 'beta', 'gamma']]
+                # Odczytujemy przypisane wagi, a dla tych nieustawionych pobieramy wartości domyślne
+                weights = [f"{k}={agent.heuristic_kwargs.get(k, v.default)}" for k, v in sig.parameters.items() if k in ['alpha', 'beta', 'gamma', 'delta']]
                 sys.stderr.write(f"  -> Wagi: {', '.join(weights)}\n")
 
 def read_board_from_stdin():
@@ -87,8 +87,11 @@ if __name__ == "__main__":
             ['W', 'W', 'W', 'W', 'W', 'W', 'W', 'W']
         ]
     
-    agent1 = MinimaxAgent('B', max_depth=4, heuristic_func=eval_race)
-    agent2 = MinimaxAgent('W', max_depth=4, heuristic_func=eval_hybrid)
+    
+    #agent1 = MinimaxAgent('B', max_depth=3, heuristic_func=eval_hybrid, alpha=0.34, beta=89.84, gamma=0.09, delta=8.42)
+    #agent1 = MinimaxAgent('B', max_depth=3, heuristic_func=eval_hybrid, alpha=0, beta=1, gamma=0, delta=0)
+    agent1 = MinimaxAgent('B', max_depth=3, heuristic_func=eval_race)
+    agent2 = MinimaxAgent('W', max_depth=3, heuristic_func=eval_adaptive)
     
     runner = GameRunner(initial_board, agent1, agent2)
     runner.play()
