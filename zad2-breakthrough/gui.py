@@ -2,26 +2,22 @@ import tkinter as tk
 import math
 import time
 
-# Importujemy klasy z Twojego pliku z logiką
-# UPEWNIJ SIĘ, że plik z logiką nazywa się logic.py
-from logic import BreakthroughState, Game, initial_board
+from state import BreakthroughState
+from agents import MinimaxAgent
+from heuristics import eval_hybrid, eval_race, eval_pressure, eval_material
 
 class BreakthroughGUI:
-    def __init__(self, master):
+    def __init__(self, master, history, stats):
         self.master = master
         self.master.title("Breakthrough AI - Minimax Visualization")
         
         # --- Parametry gry ---
-        self.current_player = 'B'
-        self.rounds = 0
-        self.max_depth = 4
+        self.history = history
+        self.stats = stats
+        self.current_step = 0
         
-        # Inicjalizacja logiki z zaimportowanej planszy
-        self.state = BreakthroughState(initial_board)
-        self.game = Game(initial_board, max_depth=self.max_depth)
-        
-        # Aktualizujemy state w obiekcie game, aby oba wskazywały na to samo
-        self.game.state = self.state 
+        # Inicjalizacja na pierwszym stanie (początkowym)
+        self.state = self.history[self.current_step]
 
         # --- Budowa Interfejsu ---
         self.create_widgets()
@@ -89,63 +85,81 @@ class BreakthroughGUI:
         self.draw_board()
         
         # 2. Aktualizuj etykiety
-        self.lbl_round.config(text=f"Runda: {self.rounds}")
+        self.lbl_round.config(text=f"Ruch nr: {self.current_step}")
         
-        if self.current_player == 'B':
-            self.lbl_turn.config(text="Tura: Gracz B (Idzie w dół)", fg="#333333")
+        current_player = 'B' if self.current_step % 2 == 0 else 'W'
+        
+        if self.current_step == len(self.history) - 1 and self.state.is_terminal():
+            winner = 'B' if self.state.is_winner('B') else 'W'
+            self.lbl_status.config(text=f"Koniec gry! Wygrywa gracz: {winner}", fg="red")
+            self.lbl_turn.config(text="Koniec gry", fg="red")
+            self.btn_next.config(state="disabled")
         else:
-            self.lbl_turn.config(text="Tura: Gracz W (Idzie w górę)", fg="#888888")
+            if current_player == 'B':
+                self.lbl_turn.config(text="Tura: Gracz B (Idzie w dół)", fg="#333333")
+            else:
+                self.lbl_turn.config(text="Tura: Gracz W (Idzie w górę)", fg="#888888")
+            
+            if self.current_step > 0:
+                prev_player, elapsed, nodes = self.stats[self.current_step - 1]
+                self.lbl_status.config(text=f"Ruch {prev_player} wyliczony w {elapsed:.2f} s | Węzły: {nodes}", fg="blue")
+            else:
+                self.lbl_status.config(text="Gra gotowa do odtworzenia.", fg="blue")
 
         # 3. Oblicz i wyświetl aktualną ocenę heurystyczną z perspektywy każdego gracza
-        # Używamy ewaluacji hybrydowej z domyślnymi wagami z Twojej logiki
-        eval_b = self.state.evaluate_hybrid('B')
-        eval_w = self.state.evaluate_hybrid('W')
+        eval_b = eval_hybrid(self.state, 'B')
+        eval_w = eval_hybrid(self.state, 'W')
         
         self.lbl_eval_b.config(text=f"Ocena pozycji (B): {eval_b}")
         self.lbl_eval_w.config(text=f"Ocena pozycji (W): {eval_w}")
 
-        # 4. Sprawdź warunek końca gry
-        if self.state.is_terminal():
-            winner = 'B' if self.state.is_winner('B') else 'W'
-            self.lbl_status.config(text=f"Koniec gry! Wygrywa gracz: {winner}")
-            self.btn_next.config(state="disabled")
-
     def play_turn(self):
-        if self.state.is_terminal():
-            return
-
-        self.btn_next.config(state="disabled") # Blokada przycisku na czas myślenia AI
-        self.master.update() # Wymuszenie odświeżenia UI
-
-        start_time = time.time()
-        
-        # Wywołanie algorytmu Minimax z Twojej klasy Game
-        _, best_next_state = self.game.minimax(
-            self.state, self.max_depth, -math.inf, math.inf, True, self.current_player
-        )
-        
-        print(f"Ruch przeliczony w {time.time() - start_time:.2f} s")
-
-        if best_next_state is None:
-            self.lbl_status.config(text=f"Brak ruchów dla gracza {self.current_player}!")
-            return
-
-        # Aktualizacja stanu
-        self.state = best_next_state
-        self.game.state = best_next_state
-        
-        # Zmiana gracza i licznika rund
-        if self.current_player == 'W':
-            self.rounds += 1
-            
-        self.current_player = 'W' if self.current_player == 'B' else 'B'
-
-        self.update_ui()
-        self.btn_next.config(state="normal") # Odblokowanie przycisku
+        if self.current_step < len(self.history) - 1:
+            self.current_step += 1
+            self.state = self.history[self.current_step]
+            self.update_ui()
 
 
 if __name__ == "__main__":
+    initial_board = [
+        ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'],
+        ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'],
+        ['_', '_', '_', '_', '_', '_', '_', '_'],
+        ['_', '_', '_', '_', '_', '_', '_', '_'],
+        ['_', '_', '_', '_', '_', '_', '_', '_'],
+        ['_', '_', '_', '_', '_', '_', '_', '_'],
+        ['W', 'W', 'W', 'W', 'W', 'W', 'W', 'W'],
+        ['W', 'W', 'W', 'W', 'W', 'W', 'W', 'W']
+    ]
+
+    print("Prekalkulacja całej gry. Proszę czekać...")
+    state = BreakthroughState(initial_board)
+    agent_b = MinimaxAgent('B', max_depth=4, heuristic_func=eval_pressure)
+    agent_w = MinimaxAgent('W', max_depth=4, heuristic_func=eval_race)
+    
+    history = [state]
+    stats = []
+    
+    current_player = 'B'
+    agents = {'B': agent_b, 'W': agent_w}
+    
+    while not state.is_terminal():
+        agent = agents[current_player]
+        start_time = time.time()
+        best_next_state, nodes = agent.get_best_move(state)
+        elapsed = time.time() - start_time
+        
+        if best_next_state is None:
+            break
+            
+        stats.append((current_player, elapsed, nodes))
+        state = best_next_state
+        history.append(state)
+        current_player = 'W' if current_player == 'B' else 'B'
+        
+    print(f"Prekalkulacja zakończona! Wygenerowano {len(history)-1} ruchów.")
+
     root = tk.Tk()
     root.resizable(False, False)
-    app = BreakthroughGUI(root)
+    app = BreakthroughGUI(root, history, stats)
     root.mainloop()

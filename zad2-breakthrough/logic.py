@@ -266,5 +266,5 @@ if __name__ == "__main__":
     
 
     # Uruchamiamy grę z głębokością przeszukiwania d=3
-    game = Game(initial_board, max_depth=4)
-    #game.play()
+    game = Game(initial_board, max_depth=5)
+    game.play()
