@@ -1,0 +1,9 @@
+Eksperyment,Train F1,Test F1,Test Acc,Test Precision,Test Recall,Różnica (Train-Test F1)
+NB_Wygładzanie_Domyślne,0.6109,0.5111,0.7179,0.5101,0.5158,0.0997
+NB_Wygładzanie_Średnie,0.6088,0.5111,0.7179,0.5101,0.5158,0.0977
+NB_Wygładzanie_Silne,0.5846,0.4779,0.7116,0.5038,0.4856,0.1067
+DT_Gini_BezLimitow,1.0,0.5671,0.6825,0.5792,0.571,0.4329
+DT_Entropia_BezLimitow,1.0,0.5716,0.6891,0.5787,0.5839,0.4284
+DT_Gini_Przyciete_Glebokosc3,0.5833,0.5011,0.7052,0.5027,0.5073,0.0821
+Bonus_RandomForest_Opt,0.7842,0.5185,0.7632,0.5097,0.5326,0.2657
+Bonus_SVM_Linear_Opt,0.7101,0.5189,0.7375,0.5202,0.5265,0.1911

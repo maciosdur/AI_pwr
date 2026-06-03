@@ -1,0 +1,9 @@
+Model,Przetwarzanie,Accuracy,Precision (Macro),Recall (Macro),F1-Score (Macro)
+NaiveBayes,Wariant_Bazowy,0.6924,0.5094,0.4752,0.4811
+NaiveBayes,Wariant_1_Standaryzacja,0.3017,0.4994,0.4698,0.2822
+NaiveBayes,Wariant_2_Standaryzacja_PCA,0.7179,0.5101,0.5158,0.5111
+NaiveBayes,Wariant_3_Stand_Selekcja,0.3777,0.5036,0.4922,0.3318
+DecisionTree,Wariant_Bazowy,0.6825,0.5792,0.571,0.5671
+DecisionTree,Wariant_1_Standaryzacja,0.6825,0.5792,0.571,0.5671
+DecisionTree,Wariant_2_Standaryzacja_PCA,0.6731,0.4718,0.474,0.4718
+DecisionTree,Wariant_3_Stand_Selekcja,0.6378,0.504,0.5074,0.5016
