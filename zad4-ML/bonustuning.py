@@ -10,7 +10,7 @@ from preprocessing import load_and_clean_data
 
 warnings.filterwarnings('ignore')
 
-print("Ładowanie danych...")
+print("ladowanie danych...")
 X, y = load_and_clean_data('data/cirrhosis.csv')
 
 skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
@@ -23,7 +23,6 @@ rf_pipeline = Pipeline([
 rf_param_grid = {
     'classifier__n_estimators': [50, 100, 200],
     'classifier__max_depth': [3, 5, None],
-    # 'class_weight': ['balanced'] # Opcjonalnie, gdy klasy są bardzo nierówne
 }
 
 print("\n--- Rozpoczynam GridSearch dla Random Forest ---")
@@ -36,7 +35,7 @@ print(f"Najlepszy F1-Score (Macro): {rf_grid.best_score_:.4f}")
 
 # --- KONFIGURACJA GRID SEARCH DLA SVM ---
 svm_pipeline = Pipeline([
-    ('scaler', StandardScaler()), # SVM wymusza skalowanie!
+    ('scaler', StandardScaler()), 
     ('classifier', SVC(random_state=42))
 ])
 

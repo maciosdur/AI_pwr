@@ -39,9 +39,9 @@ experiments = {
 }
 
 results = []
-confusion_matrices = {} # Słownik do przechowywania macierzy
+confusion_matrices = {} 
 
-print("\nRozpoczynam strojenie hiperparametrów, badanie przeuczenia i generowanie macierzy...\n")
+print("\nstrojenie parametrów\n")
 
 for name, (model, prep_steps) in experiments.items():
     steps = [(f'prep_{i}', step) for i, step in enumerate(prep_steps)]
@@ -73,7 +73,7 @@ for name, (model, prep_steps) in experiments.items():
         all_y_test.extend(y_test)
         all_y_pred.extend(y_test_pred)
         
-    # Zapis macierzy do słownika zamiast od razu rysować
+
     confusion_matrices[name] = confusion_matrix(all_y_test, all_y_pred, labels=['C', 'CL', 'D'])
         
     results.append({
@@ -86,7 +86,6 @@ for name, (model, prep_steps) in experiments.items():
         'Różnica (Train-Test F1)': np.mean(train_f1_scores) - np.mean(test_f1_scores)
     })
 
-# --- RYSOWANIE ZBIORCZEGO WYKRESU MACIERZY POMYŁEK ---
 fig, axes = plt.subplots(nrows=2, ncols=4, figsize=(20, 10))
 fig.suptitle('Zbiorcze Zestawienie Macierzy Pomyłek dla Wszystkich Modeli', fontsize=20, y=1.05)
 axes = axes.flatten()
@@ -102,9 +101,8 @@ plt.tight_layout()
 plt.savefig('charts/10_Zbiorcza_Macierz_Pomylek.png', dpi=300, bbox_inches='tight')
 plt.close()
 
-# Zapis wyników do tabeli
 results_df = pd.DataFrame(results).round(4)
 print(results_df.to_string(index=False))
 
 results_df.to_csv('wyniki_pelna_ewaluacja_hiperparametry.csv', index=False)
-print("\nWygenerowano 1 zbiorczy wykres macierzy pomyłek w folderze 'charts/'.")
+print("\nWygenerowano zbiorczy wykres macierzy pomyłek w folderze 'charts/'.")

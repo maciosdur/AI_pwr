@@ -4,31 +4,29 @@ import seaborn as sns
 import os
 import warnings
 
-# Importujemy funkcję czyszczącą z Twojego skryptu
 from preprocessing import load_and_clean_data
 
 warnings.filterwarnings('ignore')
 os.makedirs('charts', exist_ok=True)
 sns.set_theme(style="whitegrid")
 
-# 1. Wczytanie danych PRZED preprocessingiem (Raw)
 file_path = 'data/cirrhosis.csv'
 try:
     df_before = pd.read_csv(file_path)
     if 'ID' in df_before.columns:
         df_before = df_before.drop(columns=['ID'])
 except FileNotFoundError:
-    print(f"Błąd: Nie znaleziono pliku {file_path}. Sprawdź ścieżkę.")
+    print(f"Błąd: Nie znaleziono pliku {file_path}. ")
     exit()
 
-# 2. Wczytanie danych PO preprocessingu (Clean)
-print("Wywołuję funkcję load_and_clean_data z preprocessing.py...\n")
+
+print("load_and_clean_data z preprocessing.py\n")
 X_after, y_after = load_and_clean_data(file_path)
 
-# Sklejamy z powrotem cechy (X) i etykietę (y) w jedną tabelę
+# X i y w jedna tab
 df_after = pd.concat([X_after, y_after], axis=1)
 
-# 3. STATYSTYKI DO KONSOLI
+
 print("\n" + "="*50)
 print("--- PORÓWNANIE ZBIORÓW: PRZED VS PO PREPROCESSINGU ---")
 print("="*50)
@@ -38,17 +36,14 @@ print(f"Liczba kolumn (cechy+cel):  Przed = {df_before.shape[1]}   |  Po = {df_a
 print(f"Łączna liczba pustych komórek przed: {df_before.isnull().sum().sum()}")
 print(f"Łączna liczba pustych komórek po:    {df_after.isnull().sum().sum()}")
 
-# 4. GENEROWANIE WYKRESÓW PORÓWNAWCZYCH
 
-# --- Wykres 1: Znikanie braków danych (Zgrupowany wykres dla WSZYSTKICH atrybutów) ---
-# Tworzymy tabelę porównawczą dla pierwotnych kolumn
+
 missing_comparison = pd.DataFrame({
     'Przed preprocessingiem': df_before.isnull().sum(),
     # Po preprocessingu wiemy, że nie ma już żadnych braków
     'Po preprocessingu': pd.Series(0, index=df_before.columns) 
 })
 
-# Przekształcamy dane do formatu przyjaznego dla biblioteki seaborn
 missing_melted = missing_comparison.reset_index().melt(
     id_vars='index', var_name='Stan', value_name='Liczba braków'
 )
@@ -66,12 +61,12 @@ plt.title('Porównanie braków danych u pacjentów (Przed vs Po)', fontsize=16)
 plt.xlabel('Liczba brakujących wartości', fontsize=12)
 plt.ylabel('Atrybut', fontsize=12)
 
-# Dodanie pionowych linii siatki dla lepszej czytelności
+
 plt.grid(axis='x', linestyle='--', alpha=0.7)
 plt.savefig('charts/07_braki_danych_przed_vs_po.png', dpi=300, bbox_inches='tight')
 plt.close()
 
-# --- Wykres 2: Wpływ imputacji medianą na rozkłady zmiennych ciągłych ---
+
 continuous_cols = ['Bilirubin', 'Cholesterol', 'Albumin', 'Copper', 'Alk_Phos', 'SGOT', 'Tryglicerides', 'Platelets', 'Prothrombin']
 
 cols_with_na = [col for col in continuous_cols if df_before[col].isnull().sum() > 0]
@@ -93,11 +88,11 @@ if cols_with_na:
     plt.savefig('charts/08_rozkłady_imputacja_porownanie.png', dpi=300, bbox_inches='tight')
 plt.close()
 
-# --- Wykres 3: Nowa macierz korelacji (z WARTOŚCIAMI) ---
+
 plt.figure(figsize=(20, 16))
 corr_matrix_after = df_after.select_dtypes(include=['float64', 'int64', 'uint8', 'bool']).corr()
 
-# Dodano annot=True oraz zmniejszono czcionkę (annot_kws), aby liczby się nie nakładały
+
 sns.heatmap(
     corr_matrix_after, 
     cmap='coolwarm', 
